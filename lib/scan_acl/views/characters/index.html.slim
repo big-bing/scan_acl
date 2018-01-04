@@ -1,0 +1,64 @@
+.ui.top.attached.segment
+  .ui.grid.equal.width
+    .row
+      .left.floated.column
+        .ui.search
+          .ui.icon.input style="width:300px"
+            input.prompt placeholder="名称"
+            i.search.icon
+          .results
+      .column.right.aligned.floated
+        - if authorize_acl('new')
+          = link_to '新增', new_character_path, class: 'ui button primary', remote: true
+
+  table class="ui table striped table-line tiny"
+    thead
+      tr
+        th ID
+        th 名称
+        th 企业名称
+        th 权限
+        th 操作
+    tbody
+      tr
+        td = character.id
+        td = character.name
+        td
+          - if character.corporation_id
+            = character.corporation.try('name')
+        td
+          - sum = 80
+          - character.ability_groups.each do |a_group|
+            - if sum - a_group.name.to_s.chars.map{|char| char.bytesize == 3 ? 2 : 1}.sum < 0
+              - sum = 80
+              p
+            - sum -= (a_group.name.to_s.chars.map{|char| char.bytesize == 3 ? 2 : 1}.sum + 5)
+            a.ui.button.teal.tiny #{a_group.name}
+        td
+          - if ScanAcl::AbilityManagesHelpers::authorize_acl('edit', 'characters')
+            = link_to '编辑', edit_character_path(character), class: 'ui label blue', remote: true
+
+  = page @characters
+
+= content_for :js
+  javascript:
+    $(document).ready( function() {
+      $('.ui.search')
+        .search({
+          apiSettings: {
+            url: '/characters.json?q={query}'
+          },
+          fields: {
+            results : 'items',
+            title   : 'name',
+            description : 'corporation_name'
+          },
+          onSelect: function(result, response) {
+            window.location.href = location.pathname + "?id=" + result.id;
+          }
+        });
+
+        $(function(){
+          commonDropdownFilter('.ui.dropdown.filter', ['corporation_id'])
+        })
+    });
